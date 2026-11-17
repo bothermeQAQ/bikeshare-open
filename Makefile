@@ -30,3 +30,7 @@ model:
 
 check-model:
 	bash model/check.sh
+
+.PHONY: validate
+validate: features
+	python -m src.train --validation-only

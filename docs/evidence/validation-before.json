@@ -1,0 +1,30 @@
+{
+  "n_features": 14,
+  "n_train": 348,
+  "n_valid": 182,
+  "n_test": 0,
+  "baseline_mean": {
+    "valid": {
+      "r2": -0.9318,
+      "mae": 2002.2
+    }
+  },
+  "baseline_persistence": {
+    "valid": {
+      "r2": 0.4507,
+      "mae": 900.6
+    }
+  },
+  "ridge": {
+    "valid": {
+      "r2": 0.6475,
+      "mae": 832.9
+    }
+  },
+  "hgb": {
+    "valid": {
+      "r2": 0.2185,
+      "mae": 1296.6
+    }
+  }
+}

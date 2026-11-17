@@ -62,8 +62,17 @@ def temporal_split(df: pd.DataFrame):
     return train, valid, test
 
 
-def fit_and_score() -> dict:
+def scores(actual, predicted):
+    return {
+        "r2": round(float(r2_score(actual, predicted)), 4),
+        "mae": round(float(mean_absolute_error(actual, predicted)), 1),
+    }
+
+
+def fit_and_score(validation_only=False) -> dict:
     df = pd.read_parquet(PROCESSED)
+    if validation_only:
+        df = df.loc[df.dteday <= VALID_END]
     cols = feature_columns(df)
     train, valid, test = temporal_split(df)
 
@@ -74,20 +83,23 @@ def fit_and_score() -> dict:
         "n_valid": len(valid),
         "n_test": len(test),
     }
+    periods = {"valid": valid} if validation_only else {"valid": valid, "test": test}
     for name, model in MODELS.items():
         model.fit(train[cols], train[TARGET])
         results[name] = {
-            split: {
-                "r2": round(float(r2_score(part[TARGET], model.predict(part[cols]))), 4),
-                "mae": round(float(mean_absolute_error(part[TARGET], model.predict(part[cols]))), 1),
-            }
-            for split, part in [("valid", valid), ("test", test)]
+            split: scores(part[TARGET], model.predict(part[cols]))
+            for split, part in periods.items()
         }
     return results
 
 
 if __name__ == "__main__":
-    res = fit_and_score()
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--validation-only", action="store_true")
+    args = parser.parse_args()
+    res = fit_and_score(args.validation_only)
     METRICS.parent.mkdir(parents=True, exist_ok=True)
-    METRICS.write_text(json.dumps(res, indent=2))
+    if not args.validation_only:
+        METRICS.write_text(json.dumps(res, indent=2))
     print(json.dumps({k: v for k, v in res.items() if k != "features"}, indent=2))
