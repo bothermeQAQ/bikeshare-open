@@ -97,7 +97,7 @@ write this code and you have no stake in it passing.
 
 Check exactly four things:
   1. Target leakage: any feature that contains, restates, or derives from
-     the target. Use the check_identity tool on the processed feature
+     the target. Use mcp__audit__check_identity on the processed feature
      table rather than judging by column names.
   2. Temporal validity: splits by date not at random; every rolling or
      lag feature shifts before it aggregates; no transformer is fit on
@@ -149,7 +149,8 @@ async def audit_repo(repo: Path) -> dict[str, Any]:
     repo = repo.resolve()
     options = ClaudeAgentOptions(
         setting_sources=["project"],
-        tools=["Read", "Grep", "Glob", "Bash"],
+        tools=["Read", "Grep", "Glob", "Bash", "mcp__audit__check_identity", "StructuredOutput"],
+        env={"ENABLE_TOOL_SEARCH": "false"},
         system_prompt=SYSTEM,
         cwd=str(repo),
         mcp_servers={"audit": auditor_tools},
@@ -172,9 +173,9 @@ async def audit_repo(repo: Path) -> dict[str, Any]:
     # json.loads-ing the lot fails on the first repo that thinks out loud.
     final: ResultMessage | None = None
     prompt = (
-        f"Audit the repo at {repo}. Read reports/metrics.json for actual model "
-        "input names. Run the identity tool on those inputs in "
-        "data/processed/features.parquet, using the absolute path. "
+        f"Audit {repo}. Read reports/metrics.json for the feature list. "
+        "Call the exact tool name mcp__audit__check_identity. Supply target cnt, "
+        f"candidates equal to that list, and csv_path {repo / 'data/processed/features.parquet'}. "
         "Read src/features.py and src/train.py to check dates and fitting. "
         "Run make test. Return the schema via StructuredOutput."
     )
