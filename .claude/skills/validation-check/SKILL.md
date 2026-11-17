@@ -1,14 +1,19 @@
 ---
 name: validation-check
-description: Compare one named model to both baselines on H1 only. Use before freezing a forecast change.
+description: Compare a named model with the mean and persistence baselines on H1 only.
 argument-hint: "[ridge or hgb]"
 allowed-tools: Bash(make validate)
 ---
 
 Requested model: $ARGUMENTS
 
-Run `make validate` from the repo root. Read the validation R² and MAE
-for the requested model and both baselines. Quote the three pairs and
-say which model has the smallest mean absolute error. If the argument
-is neither ridge nor hgb, ask for one of those names. Stop after the
-comparison. Do not evaluate H2 or edit any files.
+The following validation results are generated at invocation time.
+
+!`make validate`
+
+Select the requested model from this output. Quote its validation R²
+and MAE alongside baseline_mean and baseline_persistence and identify
+the smallest MAE among these three entries. For a name other than
+ridge or hgb, request a valid model name. The argument selects a row
+in the output and is never inserted into a shell command. The command
+above has already run. Answer directly without another tool call.
