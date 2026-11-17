@@ -66,6 +66,12 @@ def test_dates_are_sorted_and_unique(feats):
     assert feats.dteday.is_unique
 
 
+def test_yesterdays_temperature_on_january_10(feats):
+    """Raw Jan 9 temperature was -1.498349; Jan 10 was -0.910849."""
+    row = feats.set_index("dteday").loc[pd.Timestamp("2011-01-10")]
+    assert row["temp_lag_1"] == pytest.approx(-1.498349)
+
+
 def test_unknown_weather_is_rejected():
     with pytest.raises(ValueError, match="unmapped weather labels"):
         encode_weather(pd.Series(["GOOD", "UNMAPPED"]))
