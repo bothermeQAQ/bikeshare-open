@@ -89,3 +89,28 @@ skill the lesson builds in Steps 7-8. `model/` holds the Modelfile and the
 readiness check. `agent/audit.py` is the Agent SDK batch auditor from Part 4;
 it uses the same local endpoint (`AUDIT_MODEL` overrides the model). Record
 methodological decisions in `docs/DECISIONS.md`.
+
+## Reproduce this submission
+
+Use Python 3.12 with a fresh virtual environment, then run:
+
+```sh
+python -m pip install -r requirements.txt
+make test
+make all
+git diff --exit-code -- reports/metrics.json
+python -m src.target_experiment --final
+```
+
+The top-level model keys in `reports/metrics.json` use the extended feature
+set. `before_feature` contains the paired original-input comparison on the
+same dates. During development use `make validate` and
+`python -m src.target_experiment` (no H2 scoring). Both target-experiment
+modes report metrics on the original rides scale, and neither writes
+`reports/metrics.json`.
+
+For local agent replication, build the model used for the completed tool
+calls with `make model BASE=qwen3.5:4b`, then `make check-model`. With the
+virtual environment active, run `claude` in this directory or
+`python agent/audit.py . --out reports/audit.jsonl` for the self-audit.
+Model-generated audit wording can vary across runs.
