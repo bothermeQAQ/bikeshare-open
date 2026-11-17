@@ -1,0 +1,83 @@
+{
+  "train_count_range": [
+    431,
+    6043
+  ],
+  "valid": {
+    "days": 182,
+    "above_train_max": 71,
+    "count_range": [
+      1027,
+      8362
+    ],
+    "mean_count": 5152.1,
+    "ridge_level": {
+      "r2": 0.6951,
+      "mae": 746.1
+    },
+    "ridge_smaller_absolute_error_days": 99,
+    "largest_absolute_error": {
+      "ridge": 3453.7,
+      "persistence": 5597.0
+    },
+    "ridge_weekly_residual": {
+      "r2": 0.7034,
+      "mae": 732.1
+    },
+    "hgb_level": {
+      "r2": 0.1936,
+      "mae": 1321.1
+    },
+    "hgb_weekly_residual": {
+      "r2": 0.7261,
+      "mae": 704.5
+    }
+  },
+  "test": {
+    "days": 184,
+    "above_train_max": 104,
+    "count_range": [
+      22,
+      8714
+    ],
+    "mean_count": 6042.9,
+    "ridge_level": {
+      "r2": 0.6238,
+      "mae": 876.6
+    },
+    "ridge_smaller_absolute_error_days": 82,
+    "largest_absolute_error": {
+      "ridge": 4166.5,
+      "persistence": 4470.0
+    },
+    "ridge_weekly_residual": {
+      "r2": 0.63,
+      "mae": 862.3
+    },
+    "hgb_level": {
+      "r2": -0.5785,
+      "mae": 2036.7
+    },
+    "hgb_weekly_residual": {
+      "r2": 0.6426,
+      "mae": 819.8
+    }
+  },
+  "ridge_standardized_coefficients": {
+    "temp": 518.4,
+    "atemp": 62.7,
+    "hum": -138.9,
+    "windspeed": -120.2,
+    "dayofweek": 17.9,
+    "is_weekend": -23.4,
+    "is_holiday": -53.0,
+    "is_workday": 41.9,
+    "month_sin": -109.5,
+    "month_cos": -117.1,
+    "weather_severity": -268.9,
+    "cnt_lag_1": 378.0,
+    "temp_lag_1": -515.2,
+    "cnt_lag_7": -49.5,
+    "cnt_roll_7": 613.0
+  }
+}
