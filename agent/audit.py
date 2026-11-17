@@ -172,12 +172,15 @@ async def audit_repo(repo: Path) -> dict[str, Any]:
     # intermediate TextBlock ("Let me look at config.py first...") and
     # json.loads-ing the lot fails on the first repo that thinks out loud.
     final: ResultMessage | None = None
+    metrics_path = repo / "reports/metrics.json"
+    features = json.loads(metrics_path.read_text()).get("features", []) if metrics_path.exists() else []
     prompt = (
-        f"Audit {repo}. Read reports/metrics.json for the feature list. "
-        "Call the exact tool name mcp__audit__check_identity. Supply target cnt, "
-        f"candidates equal to that list, and csv_path {repo / 'data/processed/features.parquet'}. "
+        f"Audit {repo}. First call mcp__audit__check_identity with candidates {features!r} "
+        "(read from reports/metrics.json by the harness). Supply target cnt, "
+        f"and csv_path {repo / 'data/processed/features.parquet'}. "
         "Read src/features.py and src/train.py to check dates and fitting. "
-        "Run make test. Return the schema via StructuredOutput."
+        "Run the Bash command make test. Avoid exploratory shell snippets. "
+        "Finish with the StructuredOutput tool. The intentionally leaky demo is separate from training."
     )
     async for message in query(prompt=prompt, options=options):
         if isinstance(message, AssistantMessage):
