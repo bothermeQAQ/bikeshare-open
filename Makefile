@@ -36,3 +36,7 @@ check-model:
 .PHONY: validate
 validate: features
 	python -m src.train --validation-only
+
+.PHONY: validation-summary
+validation-summary: features
+	python -m src.train --validation-summary
