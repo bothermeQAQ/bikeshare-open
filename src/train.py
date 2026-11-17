@@ -84,6 +84,15 @@ def fit_and_score(validation_only=False) -> dict:
         "n_test": len(test),
     }
     periods = {"valid": valid} if validation_only else {"valid": valid, "test": test}
+    if not validation_only and "temp_lag_1" in cols:
+        original = [column for column in cols if column != "temp_lag_1"]
+        results["before_feature"] = evaluate(train, periods, original)
+    results.update(evaluate(train, periods, cols))
+    return results
+
+
+def evaluate(train, periods, cols):
+    results = {}
     for name, model in MODELS.items():
         model.fit(train[cols], train[TARGET])
         results[name] = {
