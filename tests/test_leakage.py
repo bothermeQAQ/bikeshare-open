@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 
 from src.config import FORBIDDEN, TARGET
-from src.features import build_features, feature_columns
+from src.features import build_features, encode_weather, feature_columns
 from src.ingest import load_raw
 
 
@@ -64,3 +64,15 @@ def test_no_missing_values(feats):
 def test_dates_are_sorted_and_unique(feats):
     assert feats.dteday.is_monotonic_increasing
     assert feats.dteday.is_unique
+
+
+def test_unknown_weather_is_rejected():
+    with pytest.raises(ValueError, match="unmapped weather labels"):
+        encode_weather(pd.Series(["GOOD", "UNMAPPED"]))
+
+
+def test_no_feature_copies_same_day_counts(feats):
+    # Compare the values delivered to the estimators, regardless of the label.
+    for name in feature_columns(feats):
+        for count in ("casual", "registered", "cnt"):
+            assert not feats[name].eq(feats[count]).all(), f"{name} copies {count}"
