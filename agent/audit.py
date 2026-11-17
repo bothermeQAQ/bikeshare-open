@@ -22,6 +22,8 @@ import asyncio
 import json
 import os
 import sys
+
+from jsonschema import ValidationError, validate
 from pathlib import Path
 from typing import Any
 
@@ -49,8 +51,8 @@ from claude_agent_sdk import (
     {"csv_path": str, "target": str, "candidates": list},
 )
 async def check_identity(args: dict[str, Any]) -> dict[str, Any]:
-    df = pd.read_csv(args["csv_path"])
-    target = df[args["target"]].to_numpy(dtype=float)
+    path = Path(args["csv_path"])
+    df = pd.read_parquet(path) if path.suffix == ".parquet" else pd.read_csv(path)
     cols = [c for c in args["candidates"] if c in df.columns and c != args["target"]]
 
     # Least squares with an intercept column, so `cnt = a*x + b` is caught
@@ -142,7 +144,10 @@ REPORT_SCHEMA = {
 
 
 async def audit_repo(repo: Path) -> dict[str, Any]:
+    repo = repo.resolve()
     options = ClaudeAgentOptions(
+        setting_sources=["project"],
+        tools=["Read", "Grep", "Glob", "Bash"],
         system_prompt=SYSTEM,
         cwd=str(repo),
         mcp_servers={"audit": auditor_tools},
@@ -150,13 +155,11 @@ async def audit_repo(repo: Path) -> dict[str, Any]:
             "Read",
             "Grep",
             "Glob",
-            "Bash",
+            "Bash(make test)", "Bash(make all)", "Bash(git diff:*)",
+            "StructuredOutput",
             "mcp__audit__check_identity",
         ],
-        # allowed_tools is the boundary. Anything not listed is denied
-        # automatically in a headless run, so the auditor can read and run
-        # but has no Edit or Write to grant.
-        permission_mode="default",
+        permission_mode="dontAsk",
         max_turns=40,
         model=os.environ.get("AUDIT_MODEL", "bikeshare-coder"),
         output_format={"type": "json_schema", "schema": REPORT_SCHEMA},
@@ -166,20 +169,26 @@ async def audit_repo(repo: Path) -> dict[str, Any]:
     # intermediate TextBlock ("Let me look at config.py first...") and
     # json.loads-ing the lot fails on the first repo that thinks out loud.
     final: ResultMessage | None = None
-    async for message in query(prompt=f"Audit the repo at {repo}.", options=options):
+    async for message in query(prompt=(f"Audit the repo at {repo}. Read reports/metrics.json for actual model "
+                                      "input names. Run the identity tool on those inputs in "
+                                      "data/processed/features.parquet, using the absolute path. "
+                                      "Use make test to verify. Return the schema via StructuredOutput."),
+                               options=options):
         if isinstance(message, ResultMessage):
             final = message
 
     if final is None or final.is_error:
         return {"repo": repo.name, "error": "run_failed",
                 "raw": (final.result or "")[:500] if final else ""}
-    if final.structured_output is not None:
-        return {"repo": repo.name, **final.structured_output}
     try:
         # Belt and braces: small open-weight models do not always honour
         # the schema; fall back to parsing the final text.
-        return {"repo": repo.name, **json.loads((final.result or "").strip())}
-    except json.JSONDecodeError:
+        record = final.structured_output
+        if record is None:
+            record = json.loads((final.result or "").strip())
+        validate(record, REPORT_SCHEMA)
+        return {**record, "repo": repo.name}
+    except (json.JSONDecodeError, ValidationError):
         # Never let one malformed reply kill a 40-repo run.
         return {"repo": repo.name, "error": "unparseable", "raw": (final.result or "")[:500]}
 
@@ -195,9 +204,13 @@ async def main() -> None:
 
     async def bounded(repo: Path) -> dict[str, Any]:
         async with sem:
-            return await audit_repo(repo)
+            try:
+                return await audit_repo(repo)
+            except Exception as exc:
+                return {"repo": repo.resolve().name, "error": type(exc).__name__, "raw": str(exc)[:500]}
 
     results = await asyncio.gather(*(bounded(r) for r in ns.repos))
+    ns.out.parent.mkdir(parents=True, exist_ok=True)
     with ns.out.open("w") as fh:
         for row in results:
             fh.write(json.dumps(row) + "\n")

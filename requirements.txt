@@ -8,3 +8,4 @@ scikit-learn==1.9.1
 pytest==9.1.1
 # Part 4 only
 claude-agent-sdk==0.2.172
+jsonschema==4.26.0
