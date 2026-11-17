@@ -13,6 +13,12 @@ payload=$(cat)
 path=$(printf '%s' "$payload" | python3 -c \
   'import json,sys; print(json.load(sys.stdin).get("tool_input",{}).get("file_path",""))')
 
+# Optional transcript for the controlled fault experiment.
+if [[ -n "${BIKESHARE_HOOK_LOG:-}" ]]; then
+  printf 'PostToolUse path=%s\n' "$path" >> "$BIKESHARE_HOOK_LOG"
+  exec 2> >(tee -a "$BIKESHARE_HOOK_LOG" >&2)
+fi
+
 case "$path" in
   *src/*.py) ;;
   *) exit 0 ;;
