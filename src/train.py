@@ -106,18 +106,18 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--validation-only", action="store_true")
-    parser.add_argument("--validation-summary", action="store_true")
+    parser.add_argument("--validation-summary", choices=("ridge", "hgb"))
     args = parser.parse_args()
     if args.validation_summary:
         result = fit_and_score(validation_only=True)
-        for name in ("ridge", "hgb"):
-            group = (name, "baseline_mean", "baseline_persistence")
-            entries = [
-                f"{key} R²={result[key]['valid']['r2']:.4f} MAE={result[key]['valid']['mae']:.1f}"
-                for key in group
-            ]
-            winner = min(group, key=lambda key: result[key]["valid"]["mae"])
-            print(" | ".join([*entries, f"Lowest MAE = {winner}"]))
+        name = args.validation_summary
+        group = (name, "baseline_mean", "baseline_persistence")
+        entries = [
+            f"{key} R²={result[key]['valid']['r2']:.4f} MAE={result[key]['valid']['mae']:.1f}"
+            for key in group
+        ]
+        winner = min(group, key=lambda key: result[key]["valid"]["mae"])
+        print(" | ".join([*entries, f"Lowest MAE = {winner}"]))
         raise SystemExit(0)
     res = fit_and_score(args.validation_only)
     METRICS.parent.mkdir(parents=True, exist_ok=True)

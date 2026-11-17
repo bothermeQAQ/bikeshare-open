@@ -1,16 +1,16 @@
 ---
 name: validation-check
-description: Compare a named model with the mean and persistence baselines on H1 only.
+description: Score one named model and its two baselines on H1 only.
 argument-hint: "[ridge or hgb]"
-allowed-tools: Bash(make validation-summary)
+allowed-tools: Bash(make validate-ridge), Bash(make validate-hgb)
 ---
 
-Requested model: $ARGUMENTS
+Read the requested name: $ARGUMENTS
 
-The following validation results are generated at invocation time.
+- For ridge, run exactly `make validate-ridge`.
+- For hgb, run exactly `make validate-hgb`.
+- For anything else, request one of the two supported names.
 
-!`make validation-summary`
-
-Return the single output line that begins with the requested model name.
-It contains both baselines and the lowest-MAE model among the three.
-For any other name request ridge or hgb. Do not recompute the ranking.
+Return the final output line, including both baselines and the lowest MAE.
+Each command computes only the requested comparison for display. Do not
+change the command, rank the models yourself or read held-out results.

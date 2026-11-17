@@ -37,6 +37,6 @@ check-model:
 validate: features
 	python -m src.train --validation-only
 
-.PHONY: validation-summary
-validation-summary: features
-	python -m src.train --validation-summary
+.PHONY: validate-ridge validate-hgb
+validate-ridge validate-hgb: features
+	python -m src.train --validation-summary $(@:validate-%=%)
