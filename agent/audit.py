@@ -30,8 +30,10 @@ from typing import Any
 import numpy as np
 import pandas as pd
 from claude_agent_sdk import (
+    AssistantMessage,
     ClaudeAgentOptions,
     ResultMessage,
+    ToolUseBlock,
     create_sdk_mcp_server,
     query,
     tool,
@@ -100,7 +102,7 @@ Check exactly four things:
   2. Temporal validity: splits by date not at random; every rolling or
      lag feature shifts before it aggregates; no transformer is fit on
      validation or test rows.
-  3. Baseline: a mean or naive-persistence baseline reported next to
+  3. Baselines: both training mean and naive persistence reported next to
      every model score.
   4. Reproducibility: the pipeline runs from a documented command and
      random seeds are fixed.
@@ -169,11 +171,18 @@ async def audit_repo(repo: Path) -> dict[str, Any]:
     # intermediate TextBlock ("Let me look at config.py first...") and
     # json.loads-ing the lot fails on the first repo that thinks out loud.
     final: ResultMessage | None = None
-    async for message in query(prompt=(f"Audit the repo at {repo}. Read reports/metrics.json for actual model "
-                                      "input names. Run the identity tool on those inputs in "
-                                      "data/processed/features.parquet, using the absolute path. "
-                                      "Use make test to verify. Return the schema via StructuredOutput."),
-                               options=options):
+    prompt = (
+        f"Audit the repo at {repo}. Read reports/metrics.json for actual model "
+        "input names. Run the identity tool on those inputs in "
+        "data/processed/features.parquet, using the absolute path. "
+        "Read src/features.py and src/train.py to check dates and fitting. "
+        "Run make test. Return the schema via StructuredOutput."
+    )
+    async for message in query(prompt=prompt, options=options):
+        if isinstance(message, AssistantMessage):
+            for block in message.content:
+                if isinstance(block, ToolUseBlock):
+                    print(f"audit tool: {block.name}", file=sys.stderr)
         if isinstance(message, ResultMessage):
             final = message
 
@@ -216,7 +225,10 @@ async def main() -> None:
             fh.write(json.dumps(row) + "\n")
 
     flagged = sum(r.get("leakage") in {"suspected", "confirmed"} for r in results)
-    print(f"audited {len(results)} repos; {flagged} flagged -> {ns.out}", file=sys.stderr)
+    errors = sum("error" in row for row in results)
+    print(f"audited {len(results)} repos; {flagged} flagged; {errors} errors -> {ns.out}", file=sys.stderr)
+    if errors:
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":
