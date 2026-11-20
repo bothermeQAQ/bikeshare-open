@@ -444,9 +444,82 @@ PostToolUse path=/Users/botherme/Documents/Codex/2026-11-17/ucsd-dsc-180a-b-fall
 10 passed in 0.16s
 ```
 
-## Raw-data integrity and event scope
+## Fourth fault — Bash copy into a disposable raw-data directory
 
-The project PostToolUse matcher selects Edit and Write. The original rules therefore do not constitute a filesystem-wide integrity check. The fourth requested agent permission-bypass reproduction was not run. A separate, authorized fixture test exercises the downstream protection directly. In a disposable clone, the fixture writer added a column named `daily_index` equal to the target, leaving the modeling repository untouched. This mutation was detected by two independent checks. The hash gate in `src/ingest.py` (commit `4ed3d1e`) runs before loading the data. It detects modified bytes on ingestion and does not prevent the original write. A read-only mount for the agent process would prevent writes at the filesystem layer.
+On 2026-11-19 Claude Code 2.1.156, using local Qwen3.5 4B, executed `make check-raw-integrity` through the Bash tool in a separate checkout at `cec6c94`. Its reviewed Bash script created a disposable archive of the committed source and raw CSV. Inside that fixture, `cp` replaced `data/raw/bike_daily.csv` with the same 728 observations plus one trailing newline. The script verified parsed equality before the copy. This isolates raw-byte drift from any change to demand or weather.
+
+An observer on the Bash tool recorded the following lifecycle events. Its pre-tool check allowed only this regression command. The project's original Edit/Write matcher and permission rules were unchanged. Its optional entry trace received zero events in this session. The earlier three injections provide positive controls for that trace. Session `cdbc3324-ff9f-48e9-9cc4-e9a9ecde67e5`, Bash tool-use ID `call_8gwjt11b`, 2 Claude turns.
+
+```jsonl
+{"event": "PreToolUse", "tool": "Bash", "command": "make check-raw-integrity"}
+{"event": "PostToolUse", "tool": "Bash", "command": "make check-raw-integrity"}
+```
+
+The following is the actual Bash tool result. The copy succeeded. The next ingestion rejected the changed digest and the restored fixture passed. The test harness owned the disposable directory throughout.
+
+```text
+bash scripts/check_raw_integrity.sh
+Before copy: a6bed1577f6e4de56dcfae6d8315985073cc0ad3446c8c99ed60c86a0b5ad9dc (728 unchanged rows)
+After Bash cp: 8b19181406f2d6599f3cb5bd73ce3e81b5883599ca00badcfdb2f7e17c9dded7
+python -m src.ingest
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/private/var/folders/hn/dlwxv12938v9hsf4qnbzfpbh0000gn/T/tmp.bvzFLJgZFX/fixture/src/ingest.py", line 43, in <module>
+    df = load_raw()
+         ^^^^^^^^^^
+  File "/private/var/folders/hn/dlwxv12938v9hsf4qnbzfpbh0000gn/T/tmp.bvzFLJgZFX/fixture/src/ingest.py", line 31, in load_raw
+    verify_raw(RAW)
+  File "/private/var/folders/hn/dlwxv12938v9hsf4qnbzfpbh0000gn/T/tmp.bvzFLJgZFX/fixture/src/ingest.py", line 27, in verify_raw
+    raise ValueError(f"raw CSV SHA-256 mismatch: expected {RAW_SHA256}, got {actual}")
+ValueError: raw CSV SHA-256 mismatch: expected a6bed1577f6e4de56dcfae6d8315985073cc0ad3446c8c99ed60c86a0b5ad9dc, got 8b19181406f2d6599f3cb5bd73ce3e81b5883599ca00badcfdb2f7e17c9dded7
+make[1]: *** [data] Error 1
+make data exit status: 2
+python -m src.ingest
+OK ingest: 728 rows, 2011-01-03 -> 2012-12-31
+Restored fixture: a6bed1577f6e4de56dcfae6d8315985073cc0ad3446c8c99ed60c86a0b5ad9dc
+```
+
+The Edit/Write hook observes matching tool calls. A child process's filesystem changes do not themselves emit an Edit event. The digest check in `make data` detects the changed bytes before parsing. A read-only raw-data mount would prevent the write itself. The run changed only the fixture. Reproduce it with the virtual environment active using `make check-raw-integrity`.
+
+The ingestion change from `4ed3d1e` follows. The expected SHA-256 is defined in `src/config.py`.
+
+```diff
+diff --git a/src/ingest.py b/src/ingest.py
+index 6654075..b5f02ae 100644
+--- a/src/ingest.py
++++ b/src/ingest.py
+@@ -3,4 +3,5 @@
+ Run: python -m src.ingest
+ """
++import hashlib
+ import sys
+ import urllib.request
+@@ -8,5 +9,5 @@ import urllib.request
+ import pandas as pd
+
+-from src.config import DATA_URL, RAW
++from src.config import DATA_URL, RAW, RAW_SHA256
+
+ EXPECTED_MIN_ROWS = 700
+@@ -21,5 +22,12 @@ def download(force: bool = False) -> None:
+
+
++def verify_raw(path):
++    actual = hashlib.sha256(path.read_bytes()).hexdigest()
++    if actual != RAW_SHA256:
++        raise ValueError(f"raw CSV SHA-256 mismatch: expected {RAW_SHA256}, got {actual}")
++
++
+ def load_raw() -> pd.DataFrame:
++    verify_raw(RAW)
+     df = pd.read_csv(RAW, parse_dates=["dteday"])
+     missing = REQUIRED_COLS - set(df.columns)
+```
+
+### Independent header and value mutation checks
+
+A separate disposable clone added an unexpected column named `daily_index` equal to the same-day target. It exercises schema and value checks independently of the Bash event-routing experiment.
 
 Rejection by `make data`:
 
