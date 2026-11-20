@@ -17,7 +17,7 @@ Each forecast is for one day, with the previous day's count already available. M
 
 The untransformed results are reproducible with `make all`. The original feature set is nested under `before_feature` in `reports/metrics.json`. Reindexing the daily calendar exposes the hole on March 10, 2011. Seven initial days and seven raw observations after the gap lack complete histories, leaving 714 of 728 observations. The extra temperature lag uses one day and costs no additional rows.
 
-The final SDK self-audit found no leakage and confirmed the temporal split, baselines and reproducibility. It questioned the one-day shift in the seven-day mean. For forecast day *d*, shifting one day and averaging seven uses exactly *d−7* through *d−1*. Shifting seven days first would use *d−13* through *d−7*, discarding six available days. The named-date rolling tests check raw counts independently. We retained the original window. The machine output is in `reports/audit.jsonl`, and the earlier audit and its evidence-based response remain in commits `cd82ff1` and `c51dc28`.
+The final SDK self-audit found no leakage and confirmed the temporal split, baselines and reproducibility. It questioned the one-day shift in the seven-day mean. For forecast day *d*, shifting one day and averaging seven uses exactly *d−7* through *d−1*. Shifting seven days first would use *d−13* through *d−7*, discarding six available days. An independent calculation from raw counts matched all 714 seven-day means exactly. We retained the original window. The machine output is in `reports/audit.jsonl`, and the earlier audit and its evidence-based response remain in commits `cd82ff1` and `c51dc28`.
 
 ## Headline finding
 
