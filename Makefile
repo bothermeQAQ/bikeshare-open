@@ -40,3 +40,7 @@ validate: features
 .PHONY: validate-ridge validate-hgb
 validate-ridge validate-hgb: features
 	python -m src.train --validation-summary $(@:validate-%=%)
+
+.PHONY: check-raw-integrity
+check-raw-integrity:
+	bash scripts/check_raw_integrity.sh
