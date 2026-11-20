@@ -114,3 +114,15 @@ calls with `make model BASE=qwen3.5:4b`, then `make check-model`. With the
 virtual environment active, run `claude` in this directory or
 `python agent/audit.py . --out reports/audit.jsonl` for the self-audit.
 Model-generated audit wording can vary across runs.
+
+## Submission checks
+
+| Grading item | Weight | Evidence and verification |
+|---|---:|---|
+| Reproducible repository | 15 | Install the pinned requirements and run `make all`. The original four-model comparison is under `before_feature` in the same metrics file. Both feature sets use the same dates. |
+| Project instructions | 10 | `CLAUDE.md` has 24 lines covering forecast timing, exclusions, chronological splits, both baselines, the validation workflow and final evaluation. |
+| Verification suite | 25 | `make test` covers named-date historical temperature, actual raw headers, copied count values, calendar splits and row loss. Broken and repaired revisions and their real test output are in `docs/SEEDED_FAULTS.md`. |
+| Results with baselines | 20 | `REPORT.md` contains eight rows with both metrics on both splits. Validation snapshots precede the freeze and all 32 table entries can be checked against `reports/metrics.json`. |
+| Structural enforcement | 10 | Three real Claude edits triggered the project hook. Run `make check-raw-integrity` with the virtual environment active to repeat the Bash copy in a disposable fixture. The fourth-fault transcript and hash-gate negative control are in `docs/SEEDED_FAULTS.md`. |
+| Agent configuration | 10 | The original feature skill and reviewer are retained. The custom `/validation-check` accepts a model name. Its real calls, the pinned peer review and the SDK self-audit are in `docs/evidence/`, `docs/AUDIT.md` and `reports/audit.jsonl`. |
+| Decisions and attribution | 10 | `docs/DECISIONS.md`, the Attribution section of `REPORT.md` and the unsquashed Git history distinguish student instructions, starter choices and agent recommendations. |

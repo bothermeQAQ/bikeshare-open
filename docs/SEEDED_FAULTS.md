@@ -517,6 +517,18 @@ index 6654075..b5f02ae 100644
      missing = REQUIRED_COLS - set(df.columns)
 ```
 
+### Negative control for the new regression
+
+A second disposable clone removed the call to `verify_raw(RAW)` from `load_raw`. The scratch commit made this mutated source available to the regression's archive step. Running the same target produced this output and returned exit status 2. The test therefore detects removal of the guard.
+
+```text
+bash scripts/check_raw_integrity.sh
+Before copy: a6bed1577f6e4de56dcfae6d8315985073cc0ad3446c8c99ed60c86a0b5ad9dc (728 unchanged rows)
+After Bash cp: 8b19181406f2d6599f3cb5bd73ce3e81b5883599ca00badcfdb2f7e17c9dded7
+FAIL: ingestion accepted changed bytes
+make: *** [check-raw-integrity] Error 1
+```
+
 ### Independent header and value mutation checks
 
 A separate disposable clone added an unexpected column named `daily_index` equal to the same-day target. It exercises schema and value checks independently of the Bash event-routing experiment.
